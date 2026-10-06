@@ -212,7 +212,11 @@ function ReaderContent() {
            v.name.toLowerCase().includes('guy') || 
            v.name.toLowerCase().includes('christopher') || 
            v.name.toLowerCase().includes('ryan') || 
-           v.name.toLowerCase().includes('david'))
+           v.name.toLowerCase().includes('david') ||
+           v.name.toLowerCase().includes('daniel') ||
+           v.name.toLowerCase().includes('arthur') ||
+           v.name.toLowerCase().includes('aaron') ||
+           v.name.toLowerCase().includes('gordon'))
         );
         
         if (englishMaleVoices.length > 0) {
