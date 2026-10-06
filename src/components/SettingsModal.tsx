@@ -43,6 +43,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             <option value="gemini_free">Gemini (Free Key)</option>
             <option value="gemini_paid">Gemini (Paid Key)</option>
             <option value="deepseek">DeepSeek (Tesseract OCR + Translation)</option>
+            <option value="google_translate">Google Translate (Free + Tesseract OCR)</option>
           </select>
         </div>
 

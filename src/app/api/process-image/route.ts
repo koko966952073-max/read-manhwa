@@ -44,7 +44,34 @@ export async function POST(request: Request) {
     const base64Image = buffer.toString("base64");
     const mimeType = imageResp.headers.get("content-type") || "image/jpeg";
 
-    if (provider === "deepseek") {
+    if (provider === "google_translate") {
+      // Run Tesseract OCR on the cropped buffer
+      const worker = await createWorker('eng+kor');
+      const { data: { text } } = await worker.recognize(buffer);
+      await worker.terminate();
+
+      if (!text || text.trim() === "") {
+         return NextResponse.json({ translations: [{ original_text: "No text found", translated_text: "រកមិនឃើញអក្សរ" }] });
+      }
+
+      // Call Free Google Translate API
+      // translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=km&dt=t&q=...
+      const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=km&dt=t&q=${encodeURIComponent(text)}`;
+      const translateResp = await fetch(translateUrl);
+      const translateData = await translateResp.json();
+      
+      let translatedText = "";
+      if (translateData && translateData[0]) {
+        translateData[0].forEach((t: any) => {
+          if (t[0]) translatedText += t[0];
+        });
+      }
+
+      return NextResponse.json({ 
+        translations: [{ original_text: text, translated_text: translatedText }] 
+      });
+
+    } else if (provider === "deepseek") {
       if (!deepseekKey) {
         return NextResponse.json({ error: "DeepSeek API Key is missing in settings" }, { status: 400 });
       }

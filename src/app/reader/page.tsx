@@ -17,6 +17,42 @@ interface CropBox {
   height: number;
 }
 
+const SocialPopup = ({ onClose }: { onClose: () => void }) => {
+  const handleSubscribe = () => {
+    localStorage.setItem("hasSubscribed", "true");
+    onClose();
+  };
+
+  return (
+    <div className={styles.overlay} onClick={onClose} style={{ zIndex: 100 }}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <h2 className={styles.title} style={{textAlign: 'center'}}>Support the Creator! 💖</h2>
+        <p style={{textAlign: 'center', marginBottom: '20px', color: 'var(--text-secondary)'}}>Please follow our pages to get the latest updates!</p>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <h3 style={{margin: '0 0 10px 0'}}>📘 Facebook</h3>
+            <div style={{display: 'flex', gap: '10px'}}>
+              <a href="fb://profile/61570744166491" onClick={handleSubscribe} className="btn-primary" style={{flex: 1, textAlign: 'center', textDecoration: 'none'}}>Open in App</a>
+              <a href="https://www.facebook.com/profile.php?id=61570744166491" onClick={handleSubscribe} target="_blank" className="btn-secondary" style={{flex: 1, textAlign: 'center', textDecoration: 'none'}}>Open in Browser</a>
+            </div>
+          </div>
+          
+          <div>
+            <h3 style={{margin: '0 0 10px 0'}}>▶️ YouTube</h3>
+            <div style={{display: 'flex', gap: '10px'}}>
+              <a href="vnd.youtube://www.youtube.com/@BongHout99" onClick={handleSubscribe} className="btn-primary" style={{flex: 1, textAlign: 'center', background: '#ef4444', textDecoration: 'none'}}>Open in App</a>
+              <a href="https://www.youtube.com/@BongHout99" onClick={handleSubscribe} target="_blank" className="btn-secondary" style={{flex: 1, textAlign: 'center', textDecoration: 'none'}}>Open in Browser</a>
+            </div>
+          </div>
+        </div>
+
+        <button className={styles.btnCancel} style={{width: '100%', marginTop: '20px'}} onClick={onClose}>Close (Maybe Later)</button>
+      </div>
+    </div>
+  );
+};
+
 function ReaderContent() {
   const searchParams = useSearchParams();
   const url = searchParams.get("url");
@@ -26,6 +62,8 @@ function ReaderContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showSocial, setShowSocial] = useState(false);
+  const [interactionMode, setInteractionMode] = useState<"scroll" | "draw">("scroll");
 
   const [processingImageIndex, setProcessingImageIndex] = useState<number | null>(null);
   const [translations, setTranslations] = useState<{ [key: number]: Translation[] }>({});
@@ -72,8 +110,19 @@ function ReaderContent() {
     fetchImages();
   }, [url]);
 
+  useEffect(() => {
+    const hasSubscribed = localStorage.getItem("hasSubscribed");
+    if (!hasSubscribed) {
+      const timer = setTimeout(() => {
+        setShowSocial(true);
+      }, 15000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, index: number) => {
     if (processingImageIndex !== null) return;
+    if (interactionMode === 'scroll') return;
     
     // Clear previous translations for this index to allow drawing a new box
     if (translations[index]) {
@@ -277,7 +326,7 @@ function ReaderContent() {
       {!loading && !error && images.length > 0 && (
         <div className={styles.readerArea}>
           <p style={{textAlign: "center", color: "var(--text-secondary)", marginBottom: "1rem"}}>
-            ✨ Tip: Click and drag over a speech bubble to translate it!
+            ✨ Tip: Switch to ✏️ Draw Mode using the bottom right button to select text!
           </p>
           {images.map((src, index) => {
             const isCurrentlyDrawing = isDrawing && drawingIndex === index;
@@ -293,7 +342,7 @@ function ReaderContent() {
                   onPointerDown={(e) => handlePointerDown(e, index)}
                   onPointerMove={handlePointerMove}
                   onPointerUp={(e) => handlePointerUp(e, index, src)}
-                  style={{ touchAction: 'none' }} // Prevent scrolling while drawing on mobile
+                  style={{ touchAction: interactionMode === 'draw' ? 'none' : 'auto' }} // Prevent scrolling only while in draw mode
                 >
                   <img
                     ref={(el) => { imageRefs.current[index] = el; }}
@@ -391,6 +440,34 @@ function ReaderContent() {
           })}
         </div>
       )}
+
+      <button 
+        onClick={() => setInteractionMode(prev => prev === 'scroll' ? 'draw' : 'scroll')}
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          width: '60px',
+          height: '60px',
+          borderRadius: '30px',
+          background: interactionMode === 'scroll' ? '#3b82f6' : '#8b5cf6',
+          color: 'white',
+          fontSize: '28px',
+          border: 'none',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          cursor: 'pointer',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s ease'
+        }}
+        title={interactionMode === 'scroll' ? "Switch to Draw Mode" : "Switch to Scroll Mode"}
+      >
+        {interactionMode === 'scroll' ? '🖐' : '✏️'}
+      </button>
+
+      {showSocial && <SocialPopup onClose={() => setShowSocial(false)} />}
     </div>
   );
 }
