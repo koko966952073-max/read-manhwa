@@ -209,7 +209,7 @@ function ReaderContent() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ imageUrl: src, provider: provider.startsWith("gemini") ? "gemini" : "deepseek", geminiKey, deepseekKey, crop }),
+        body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey, deepseekKey, crop }),
       });
 
       const data = await response.json();
