@@ -71,8 +71,9 @@ function ReaderContent() {
   const [error, setError] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSocial, setShowSocial] = useState(false);
-  const [interactionMode, setInteractionMode] = useState<"scroll" | "draw">("scroll");
-
+  
+  const pressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPress = useRef(false);
   const [processingImageIndex, setProcessingImageIndex] = useState<number | null>(null);
   const [translations, setTranslations] = useState<{ [key: number]: Translation[] }>({});
 
@@ -157,7 +158,6 @@ function ReaderContent() {
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, index: number) => {
     if (processingImageIndex !== null) return;
-    if (interactionMode === 'scroll') return;
     
     // Clear previous translations for this index to allow drawing a new box
     if (translations[index]) {
@@ -173,12 +173,37 @@ function ReaderContent() {
     setDrawingIndex(index);
     setStartPos({ x, y });
     setCurrentPos({ x, y });
-    setIsDrawing(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
+    
+    // For mouse, draw immediately. For touch, we delay slightly to allow scrolling.
+    if (e.pointerType === 'mouse') {
+      setIsDrawing(true);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } else {
+      isLongPress.current = false;
+      pressTimer.current = setTimeout(() => {
+        isLongPress.current = true;
+        setIsDrawing(true);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch(e){}
+      }, 200); // 200ms delay to differentiate from scroll
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse' && !isLongPress.current) {
+      // If they are moving their finger before the long press timer fires, it's a scroll. Cancel drawing.
+      if (pressTimer.current) clearTimeout(pressTimer.current);
+      return;
+    }
+    
     if (!isDrawing) return;
+    
+    // Prevent default scroll behavior when actively drawing
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+    
     const rect = e.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
@@ -186,9 +211,14 @@ function ReaderContent() {
   };
 
   const handlePointerUp = async (e: React.PointerEvent<HTMLDivElement>, index: number, src: string) => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    
     if (!isDrawing) return;
     setIsDrawing(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    isLongPress.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch(e){}
 
     const rect = e.currentTarget.getBoundingClientRect();
     const imgEl = imageRefs.current[index];
@@ -570,11 +600,15 @@ function ReaderContent() {
                   onPointerDown={(e) => handlePointerDown(e, index)}
                   onPointerMove={handlePointerMove}
                   onPointerUp={(e) => handlePointerUp(e, index, src)}
+                  onPointerCancel={(e) => {
+                    if (pressTimer.current) clearTimeout(pressTimer.current);
+                    setIsDrawing(false);
+                    isLongPress.current = false;
+                  }}
                   style={{ 
-                    touchAction: interactionMode === 'draw' ? 'none' : 'auto',
-                    WebkitTouchCallout: interactionMode === 'draw' ? 'none' : 'default',
-                    WebkitUserSelect: interactionMode === 'draw' ? 'none' : 'auto',
-                    userSelect: interactionMode === 'draw' ? 'none' : 'auto'
+                    touchAction: isDrawing ? 'none' : 'auto',
+                    WebkitTouchCallout: 'none',
+                    userSelect: 'none'
                   }} 
                 >
                   <img
@@ -769,31 +803,17 @@ function ReaderContent() {
         </div>
       )}
 
-      <button 
-        onClick={() => setInteractionMode(prev => prev === 'scroll' ? 'draw' : 'scroll')}
-        style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          padding: '10px 20px',
-          borderRadius: '25px',
-          background: interactionMode === 'scroll' ? 'rgba(59, 130, 246, 0.9)' : 'rgba(139, 92, 246, 0.9)',
-          color: 'white',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          border: '1px solid rgba(255,255,255,0.2)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          cursor: 'pointer',
-          zIndex: 50,
-          backdropFilter: 'blur(10px)',
-          transition: 'all 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}
-      >
-        {interactionMode === 'scroll' ? '🖐 Scroll Mode' : '✏️ Draw Mode'}
-      </button>
+      {/* Bottom Navigation Buttons */}
+      {images.length > 0 && (
+        <div style={{ textAlign: 'center', margin: '40px 0', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+          <button className="btn-primary" onClick={() => navigateChapter('prev')} style={{ padding: '12px 24px', fontSize: '1.1rem' }}>
+            ⬅️ Prev Chapter
+          </button>
+          <button className="btn-primary" onClick={() => navigateChapter('next')} style={{ padding: '12px 24px', fontSize: '1.1rem', background: 'var(--accent-color)' }}>
+            Next Chapter ➡️
+          </button>
+        </div>
+      )}
 
       {showSocial && <SocialPopup onClose={() => setShowSocial(false)} />}
     </div>
