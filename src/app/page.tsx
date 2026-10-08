@@ -6,6 +6,7 @@ import styles from "./page.module.css";
 
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
   const [isQrOpen, setIsQrOpen] = useState(false);
   const router = useRouter();
 
@@ -14,12 +15,25 @@ export default function Home() {
     if (savedUrl) {
       setUrl(savedUrl);
     }
+    const savedHistory = localStorage.getItem("readingHistory");
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        // ignore
+      }
+    }
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (url) {
       localStorage.setItem("lastReadUrl", url);
+      
+      let historyArr = [...history];
+      historyArr = [url, ...historyArr.filter((u: string) => u !== url)].slice(0, 10);
+      localStorage.setItem("readingHistory", JSON.stringify(historyArr));
+      
       // Redirect to the reader page with the URL as a query parameter
       router.push(`/reader?url=${encodeURIComponent(url)}`);
     }
@@ -58,6 +72,21 @@ export default function Home() {
           Start Browsing
         </button>
       </form>
+
+      {history.length > 0 && (
+        <div className={`glass-panel animate-fade-in ${styles.formContainer}`} style={{ marginTop: '20px' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '15px', color: 'var(--accent-color)' }}>Recent History</h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {history.map((h, i) => (
+              <li key={i}>
+                <a href={`/reader?url=${encodeURIComponent(h)}`} style={{ color: 'var(--foreground)', textDecoration: 'none', display: 'block', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', wordBreak: 'break-all', fontSize: '0.9rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {h.length > 60 ? h.substring(0, 60) + '...' : h}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className={styles.qrSection}>
         <p>Scan to Support Creator</p>

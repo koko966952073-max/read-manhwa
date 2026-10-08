@@ -128,6 +128,12 @@ function ReaderContent() {
       const lastIndex = currentUrl.lastIndexOf(match[0]);
       const newUrl = currentUrl.substring(0, lastIndex) + nextNum.toString() + currentUrl.substring(lastIndex + match[0].length);
       localStorage.setItem("lastReadUrl", newUrl);
+      
+      const savedHistory = localStorage.getItem("readingHistory");
+      let historyArr = savedHistory ? JSON.parse(savedHistory) : [];
+      historyArr = [newUrl, ...historyArr.filter((u: string) => u !== newUrl)].slice(0, 10);
+      localStorage.setItem("readingHistory", JSON.stringify(historyArr));
+      
       router.push(`/reader?url=${encodeURIComponent(newUrl)}`);
     } else {
       alert("Could not detect chapter number in URL.");
