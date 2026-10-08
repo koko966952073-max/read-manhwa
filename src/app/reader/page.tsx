@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import SettingsModal from "../../components/SettingsModal";
+import { createWorker } from "tesseract.js";
 
 interface Translation {
   original_text: string;
@@ -204,21 +205,73 @@ function ReaderContent() {
 
     setProcessingImageIndex(index);
     try {
-      const response = await fetch("/api/process-image", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey, deepseekKey, crop }),
-      });
+      if (provider === "google_translate" || provider === "deepseek") {
+        // --- Client-Side OCR Path ---
+        // Fetch image via proxy to avoid CORS issues when drawing to canvas
+        const proxyUrl = `/api/proxy?url=${encodeURIComponent(src)}`;
+        const imgBlob = await fetch(proxyUrl).then(r => r.blob());
+        const imgBitmap = await createImageBitmap(imgBlob);
 
-      const data = await response.json();
-      if (response.ok && data.translations) {
-        setTranslations((prev) => ({ ...prev, [index]: data.translations }));
+        // Draw cropped portion to offscreen canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Could not create canvas context");
+
+        ctx.drawImage(
+          imgBitmap,
+          crop.x, crop.y, crop.width, crop.height, // source
+          0, 0, crop.width, crop.height // destination
+        );
+
+        // Extract base64
+        const base64Crop = canvas.toDataURL("image/jpeg");
+
+        // Run client-side OCR
+        const worker = await createWorker("eng+kor");
+        const { data: { text } } = await worker.recognize(base64Crop);
+        await worker.terminate();
+
+        if (!text || text.trim() === "") {
+           setTranslations((prev) => ({ 
+             ...prev, 
+             [index]: [{ original_text: "No text found", translated_text: "រកមិនឃើញអក្សរ" }] 
+           }));
+           return;
+        }
+
+        // Send raw text to the lightweight translation endpoint
+        const response = await fetch("/api/translate-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, provider, deepseekKey }),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.translations) {
+          setTranslations((prev) => ({ ...prev, [index]: data.translations }));
+        } else {
+          alert(data.error || "Failed to translate text");
+        }
+
       } else {
-        alert(data.error || "Failed to process image");
+        // --- Server-Side Native Vision Path (Gemini) ---
+        const response = await fetch("/api/process-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey, deepseekKey, crop }),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.translations) {
+          setTranslations((prev) => ({ ...prev, [index]: data.translations }));
+        } else {
+          alert(data.error || "Failed to process image");
+        }
       }
     } catch (err) {
+      console.error(err);
       alert("Error connecting to AI service.");
     } finally {
       setProcessingImageIndex(null);
