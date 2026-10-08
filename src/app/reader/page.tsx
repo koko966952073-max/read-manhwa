@@ -761,26 +761,26 @@ function ReaderContent() {
         onClick={() => setInteractionMode(prev => prev === 'scroll' ? 'draw' : 'scroll')}
         style={{
           position: 'fixed',
-          bottom: '20px',
+          top: '20px',
           right: '20px',
-          width: '60px',
-          height: '60px',
-          borderRadius: '30px',
-          background: interactionMode === 'scroll' ? '#3b82f6' : '#8b5cf6',
+          padding: '10px 20px',
+          borderRadius: '25px',
+          background: interactionMode === 'scroll' ? 'rgba(59, 130, 246, 0.9)' : 'rgba(139, 92, 246, 0.9)',
           color: 'white',
-          fontSize: '28px',
-          border: 'none',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          border: '1px solid rgba(255,255,255,0.2)',
           boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           cursor: 'pointer',
           zIndex: 50,
+          backdropFilter: 'blur(10px)',
+          transition: 'all 0.3s ease',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.3s ease'
+          gap: '8px'
         }}
-        title={interactionMode === 'scroll' ? "Switch to Draw Mode" : "Switch to Scroll Mode"}
       >
-        {interactionMode === 'scroll' ? '🖐' : '✏️'}
+        {interactionMode === 'scroll' ? '🖐 Scroll Mode' : '✏️ Draw Mode'}
       </button>
 
       {showSocial && <SocialPopup onClose={() => setShowSocial(false)} />}
