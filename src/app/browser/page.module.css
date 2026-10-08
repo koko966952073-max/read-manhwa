@@ -37,6 +37,30 @@
   background: rgba(255,255,255,0.1);
 }
 
+.brandGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 10px;
+}
+
+.logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--accent-color);
+}
+
+.brandName {
+  font-weight: bold;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  -webkit-background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+}
+
 .urlBarForm {
   flex: 1;
   display: flex;
@@ -82,6 +106,23 @@
 .readBtn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.socialGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 10px;
+}
+
+.socialIcon {
+  width: 28px;
+  height: 28px;
+  transition: transform 0.2s;
+}
+
+.socialIcon:hover {
+  transform: scale(1.1);
 }
 
 .main {

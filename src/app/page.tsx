@@ -53,6 +53,14 @@ export default function Home() {
       <div className={styles.qrSection}>
         <p>Scan to Support Creator</p>
         <img src="/qrcode.jpg" alt="Support QR Code" className={styles.qrCode} />
+        <div className={styles.homeSocialGroup}>
+          <a href="https://www.facebook.com/profile.php?id=61570744166491" target="_blank" className={`btn-primary ${styles.socialBtn}`}>
+            📘 Facebook
+          </a>
+          <a href="https://www.youtube.com/@BongHout99" target="_blank" className={`btn-primary ${styles.socialBtn}`} style={{background: '#ef4444'}}>
+            ▶️ YouTube
+          </a>
+        </div>
       </div>
     </main>
   );

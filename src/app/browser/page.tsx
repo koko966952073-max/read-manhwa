@@ -41,6 +41,11 @@ export default function BrowserPage() {
             🏠
           </button>
           
+          <div className={styles.brandGroup}>
+            <img src="/logo.png" alt="Smoray Logo" className={styles.logo} />
+            <span className={styles.brandName}>Bong Hout</span>
+          </div>
+
           <form className={styles.urlBarForm} onSubmit={handleNavigate}>
             <input 
               type="text" 
@@ -59,6 +64,15 @@ export default function BrowserPage() {
           >
             🇰🇭 Read Chapter
           </button>
+          
+          <div className={styles.socialGroup}>
+            <a href="https://www.facebook.com/profile.php?id=61570744166491" target="_blank" title="Facebook">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="FB" className={styles.socialIcon} />
+            </a>
+            <a href="https://www.youtube.com/@BongHout99" target="_blank" title="YouTube">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YT" className={styles.socialIcon} />
+            </a>
+          </div>
         </div>
       </header>
 
