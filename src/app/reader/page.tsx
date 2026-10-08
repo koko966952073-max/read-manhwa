@@ -554,7 +554,7 @@ function ReaderContent() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US'; // Default to English for reading
-    recognition.continuous = false;
+    recognition.continuous = true; // Use continuous so it doesn't stop randomly
     recognition.interimResults = false;
 
     recognition.onstart = () => {
@@ -563,11 +563,15 @@ function ReaderContent() {
     };
 
     recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript;
+      // Get the last finalized transcript
+      const lastIndex = event.results.length - 1;
+      const transcript = event.results[lastIndex][0].transcript;
+      
+      if (!transcript || transcript.trim() === '') return;
+      
       setIsVoiceProcessing(true);
       
       try {
-        // Use our free Google Translate API route
         const response = await fetch('/api/translate-text', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -584,10 +588,10 @@ function ReaderContent() {
             translation: data.translations[0].translated_text
           });
         } else {
-          alert("Failed to translate the text.");
+          alert("Failed to translate: " + JSON.stringify(data));
         }
-      } catch (e) {
-        alert("Error connecting to translation server");
+      } catch (e: any) {
+        alert("Error connecting to translation server: " + e.message);
       } finally {
         setIsVoiceProcessing(false);
       }
@@ -595,9 +599,11 @@ function ReaderContent() {
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
-      setIsRecording(false);
-      if (event.error !== 'aborted') {
+      if (event.error !== 'aborted' && event.error !== 'no-speech') {
         alert("Microphone error: " + event.error);
+      }
+      if (event.error !== 'no-speech') {
+        setIsRecording(false);
       }
     };
 
