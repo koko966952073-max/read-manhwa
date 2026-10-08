@@ -616,10 +616,11 @@ function ReaderContent() {
                   {translations[index] && !renderedBoxes[index] && translations[index].some(t => t.ymin !== undefined || t.box_2d || t.box) && (
                     translations[index].map((t, i) => {
                       let ymin, xmin, ymax, xmax;
-                      if (t.ymin !== undefined) {
+                      if (t.ymin !== undefined && t.xmin !== undefined && t.ymax !== undefined && t.xmax !== undefined) {
                         ymin = t.ymin; xmin = t.xmin; ymax = t.ymax; xmax = t.xmax;
                       } else if (t.box_2d || t.box) {
                         const box = t.box_2d || t.box;
+                        if (!box) return null;
                         [ymin, xmin, ymax, xmax] = box;
                       } else {
                         return null;
