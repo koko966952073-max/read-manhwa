@@ -72,6 +72,13 @@ function ReaderContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSocial, setShowSocial] = useState(false);
   
+  // Voice Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceResult, setVoiceResult] = useState<{ transcript: string, translation: string } | null>(null);
+  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
   const pressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPress = useRef(false);
   const [processingImageIndex, setProcessingImageIndex] = useState<number | null>(null);
@@ -537,6 +544,82 @@ function ReaderContent() {
     setTranslations(newTranslations);
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // Convert to base64
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64data = reader.result as string;
+          const base64Audio = base64data.split(',')[1];
+          
+          setIsVoiceProcessing(true);
+          try {
+            const geminiKey = localStorage.getItem("geminiKey") || "";
+            const response = await fetch('/api/voice-translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                audioBase64: base64Audio,
+                mimeType: 'audio/webm',
+                geminiKey: geminiKey
+              })
+            });
+            const data = await response.json();
+            if (response.ok) {
+              setVoiceResult(data);
+            } else {
+              alert(data.error || "Failed to process audio");
+            }
+          } catch (e) {
+            alert("Error connecting to server");
+          } finally {
+            setIsVoiceProcessing(false);
+          }
+        };
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setVoiceResult(null); // Clear previous result
+    } catch (err) {
+      alert("Microphone access denied or not available.");
+      console.error(err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      
+      // Stop all tracks to release microphone
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
   const handleTranslateAll = async () => {
     if (!window.confirm("This will translate the entire chapter. It might take a minute. Continue?")) return;
     setIsTranslatingAll(true);
@@ -816,6 +899,79 @@ function ReaderContent() {
       )}
 
       {showSocial && <SocialPopup onClose={() => setShowSocial(false)} />}
+
+      {/* Voice Translate Result Popup */}
+      {voiceResult && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '90%',
+          maxWidth: '400px',
+          background: 'rgba(20, 20, 30, 0.95)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid var(--accent-color)',
+          borderRadius: '16px',
+          padding: '20px',
+          zIndex: 100,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          color: 'white',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem', color: '#3b82f6' }}>You said:</h3>
+          <p style={{ margin: '0 0 15px 0', fontStyle: 'italic', opacity: 0.8 }}>{voiceResult.transcript}</p>
+          
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem', color: 'var(--accent-color)' }}>Khmer Translation:</h3>
+          <p style={{ margin: '0 0 20px 0', fontSize: '1.2rem', fontWeight: 'bold' }}>{voiceResult.translation}</p>
+          
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={(e) => handleReadAloud(e as any, voiceResult.translation, 'km')}
+              className="btn-primary" 
+              style={{ flex: 1, padding: '10px' }}
+            >
+              🇰🇭 Read Aloud
+            </button>
+            <button 
+              onClick={() => setVoiceResult(null)}
+              className="btn-secondary"
+              style={{ flex: 1, padding: '10px' }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Microphone Button */}
+      <button 
+        onClick={toggleRecording}
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          width: '60px',
+          height: '60px',
+          borderRadius: '30px',
+          background: isRecording ? '#ef4444' : '#8b5cf6',
+          color: 'white',
+          fontSize: '28px',
+          border: 'none',
+          boxShadow: isRecording ? '0 0 20px rgba(239, 68, 68, 0.8)' : '0 4px 12px rgba(0,0,0,0.3)',
+          cursor: 'pointer',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.3s ease',
+          animation: isRecording ? 'pulse 1.5s infinite' : 'none'
+        }}
+        title={isRecording ? "Stop Recording" : "Start Voice Translation"}
+      >
+        {isVoiceProcessing ? <span className={styles.loadingSpinner} style={{width: '24px', height: '24px', borderTopColor: 'white'}}></span> : (isRecording ? '⏹️' : '🎤')}
+      </button>
+
     </div>
   );
 }
