@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./page.module.css";
-
-import { Suspense } from "react";
 
 function BrowserContent() {
   const searchParams = useSearchParams();
@@ -14,12 +12,26 @@ function BrowserContent() {
   const [urlInput, setUrlInput] = useState(initialUrl);
   const [currentUrl, setCurrentUrl] = useState(initialUrl);
   const [loading, setLoading] = useState(true);
+  const [loadingTime, setLoadingTime] = useState(0);
 
   // Sync URL bar when navigating inside iframe (via proxy rewriting)
   useEffect(() => {
     setUrlInput(initialUrl);
     setCurrentUrl(initialUrl);
+    setLoading(true);
+    setLoadingTime(0);
   }, [initialUrl]);
+
+  // Track loading time
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      interval = setInterval(() => {
+        setLoadingTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +95,12 @@ function BrowserContent() {
           <div className={styles.loadingOverlay}>
             <div className={styles.spinner}></div>
             <p>Loading Website...</p>
+            {loadingTime > 4 && (
+              <div style={{ marginTop: '20px', color: '#ff4b4b', textAlign: 'center', maxWidth: '400px' }}>
+                <p>⚠️ វិបសាយនេះមានប្រព័ន្ធការពារ (Security Block)!</p>
+                <p>ប្រសិនបើលោកអ្នកចង់អានរឿង សូមចុចប៊ូតុង <strong>"🇰🇭 Read Chapter"</strong> នៅខាងលើផ្នែកខាងស្ដាំ ដើម្បីចាប់ផ្ដើមបកប្រែយកតែម្ដង!</p>
+              </div>
+            )}
           </div>
         )}
         
