@@ -609,19 +609,18 @@ function ReaderContent() {
                           key={i}
                           style={{
                             position: 'absolute',
-                            top: `${top}%`,
-                            left: `${left}%`,
-                            width: `${width}%`,
-                            height: `${height}%`,
-                            background: 'rgba(255, 255, 255, 0.95)',
-                            color: '#000',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            padding: '2px 4px',
-                            fontSize: '0.8rem',
-                            overflow: 'auto',
+                            top: `${top + height}%`, // Position right below the original text
+                            left: `${Math.max(0, left - 10)}%`, // Center it slightly
+                            width: `${Math.min(100, width + 20)}%`, // Make it slightly wider for Khmer text
+                            background: 'rgba(0, 0, 0, 0.85)', // Dark background for better readability
+                            color: '#fff',
+                            border: '2px solid var(--accent-color)',
+                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            fontSize: '0.9rem',
+                            lineHeight: '1.4',
                             zIndex: 10,
-                            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'center',
@@ -630,8 +629,8 @@ function ReaderContent() {
                           }}
                         >
                           <span style={{ fontWeight: 'bold' }}>{t.translated_text}</span>
-                          <div style={{ display: 'flex', gap: '5px', marginTop: '2px' }}>
-                            <button onClick={(e) => handleReadAloud(e, t.translated_text, 'km')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>🔊</button>
+                          <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
+                            <button onClick={(e) => handleReadAloud(e, t.translated_text, 'km')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>🔊</button>
                           </div>
                         </div>
                       );
