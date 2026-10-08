@@ -195,6 +195,102 @@ function ReaderContent() {
     await processImageCrop(index, src, cropBox);
   };
 
+  const processFullImage = async (index: number, src: string) => {
+    const provider = localStorage.getItem("ai_provider") || "gemini_free";
+    const geminiFreeKey = localStorage.getItem("gemini_free_key") || "";
+    const geminiPaidKey = localStorage.getItem("gemini_paid_key") || "";
+    const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
+    
+    let geminiKey = provider === "gemini_paid" ? geminiPaidKey : geminiFreeKey;
+
+    setProcessingImageIndex(index);
+    // Clear any previous boxes
+    setRenderedBoxes((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+
+    try {
+      if (provider === "google_translate" || provider === "deepseek") {
+        // Tesseract full page
+        const proxyUrl = `/api/proxy?url=${encodeURIComponent(src)}`;
+        const imgBlob = await fetch(proxyUrl).then(r => r.blob());
+        const imgBitmap = await createImageBitmap(imgBlob);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = imgBitmap.width;
+        canvas.height = imgBitmap.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Could not create canvas context");
+
+        ctx.drawImage(imgBitmap, 0, 0);
+        const base64Crop = canvas.toDataURL("image/jpeg");
+
+        const worker = await createWorker("eng+kor");
+        const { data: { text } } = await worker.recognize(base64Crop);
+        await worker.terminate();
+
+        if (!text || text.trim() === "") {
+           setTranslations((prev) => ({ 
+             ...prev, 
+             [index]: [{ original_text: "No text found", translated_text: "រកមិនឃើញអក្សរ" }] 
+           }));
+           return;
+        }
+
+        if (provider === "google_translate") {
+          const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=km&dt=t&q=${encodeURIComponent(text)}`;
+          const translateResp = await fetch(translateUrl);
+          if (!translateResp.ok) throw new Error("Google Translate API blocked this IP. Try DeepSeek or Gemini.");
+          const translateData = await translateResp.json();
+          let translatedText = "";
+          if (translateData && translateData[0]) {
+            translateData[0].forEach((t: any) => {
+              if (t[0]) translatedText += t[0];
+            });
+          }
+          setTranslations((prev) => ({ 
+            ...prev, 
+            [index]: [{ original_text: text, translated_text: translatedText }] 
+          }));
+        } else {
+          const response = await fetch("/api/translate-text", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, provider, deepseekKey }),
+          });
+
+          const data = await response.json();
+          if (response.ok && data.translations) {
+            setTranslations((prev) => ({ ...prev, [index]: data.translations }));
+          } else {
+            alert(data.error || "Failed to translate text");
+          }
+        }
+      } else {
+        // Gemini Full Page Auto Translate
+        const response = await fetch("/api/auto-translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey }),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.translations) {
+          setTranslations((prev) => ({ ...prev, [index]: data.translations }));
+        } else {
+          alert(data.error || "Failed to process image");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error connecting to AI service.");
+    } finally {
+      setProcessingImageIndex(null);
+    }
+  };
+
   const processImageCrop = async (index: number, src: string, crop: CropBox) => {
     const provider = localStorage.getItem("ai_provider") || "gemini_free";
     const geminiFreeKey = localStorage.getItem("gemini_free_key") || "";
@@ -448,8 +544,38 @@ function ReaderContent() {
                       </div>
                     </div>
                   )}
+                </div>
 
-                  {translations[index] && (
+                <div style={{ padding: '10px', textAlign: 'center' }}>
+                  <button 
+                    onClick={() => processFullImage(index, src)}
+                    className="btn-primary"
+                    style={{ fontSize: '0.9rem', padding: '8px 16px', background: 'var(--accent-color)' }}
+                  >
+                    ✨ Auto-Translate Image
+                  </button>
+                </div>
+
+                {translations[index] && !renderedBoxes[index] && (
+                  <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', margin: '0 10px 20px 10px' }}>
+                    <h3 style={{ color: 'var(--accent-color)', marginBottom: '15px', fontSize: '1rem' }}>Translated Text</h3>
+                    {translations[index].map((t, i) => (
+                      <div key={i} className={styles.translationItem} style={{ marginBottom: '15px' }}>
+                        <div className={styles.khmerText} style={{ fontSize: '1.1rem' }}>{t.translated_text}</div>
+                        <div className={styles.originalText} style={{ fontSize: '0.9rem' }}>{formatOriginalText(t.original_text)}</div>
+                      </div>
+                    ))}
+                    <button 
+                      className={`btn-primary ${styles.closeBtn}`}
+                      onClick={() => handleCloseTranslation({ stopPropagation: () => {} } as any, index)}
+                      style={{ width: '100%', marginTop: '10px' }}
+                    >
+                      Close Translation
+                    </button>
+                  </div>
+                )}
+
+                {translations[index] && renderedBoxes[index] && (
                     <div 
                       className={styles.overlay} 
                       onClick={(e) => handleCloseTranslation(e, index)} 
@@ -505,7 +631,6 @@ function ReaderContent() {
                       </div>
                     </div>
                   )}
-                </div>
               </div>
             );
           })}
