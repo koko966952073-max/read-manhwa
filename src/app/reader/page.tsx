@@ -10,6 +10,11 @@ interface Translation {
   original_text: string;
   translated_text: string;
   box?: [number, number, number, number]; // [ymin, xmin, ymax, xmax]
+  box_2d?: [number, number, number, number];
+  ymin?: number;
+  xmin?: number;
+  ymax?: number;
+  xmax?: number;
 }
 
 interface CropBox {
