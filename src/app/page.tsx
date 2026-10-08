@@ -6,6 +6,7 @@ import styles from "./page.module.css";
 
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [isQrOpen, setIsQrOpen] = useState(false);
   const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,7 +53,13 @@ export default function Home() {
 
       <div className={styles.qrSection}>
         <p>Scan to Support Creator</p>
-        <img src="/qrcode.jpg" alt="Support QR Code" className={styles.qrCode} />
+        <img 
+          src="/qrcode.jpg" 
+          alt="Support QR Code" 
+          className={styles.qrCode} 
+          onClick={() => setIsQrOpen(true)}
+          title="Click to Enlarge"
+        />
         <div className={styles.homeSocialGroup}>
           <a href="https://www.facebook.com/profile.php?id=61570744166491" target="_blank" className={`btn-primary ${styles.socialBtn}`}>
             📘 Facebook
@@ -62,6 +69,12 @@ export default function Home() {
           </a>
         </div>
       </div>
+
+      {isQrOpen && (
+        <div className={styles.qrModal} onClick={() => setIsQrOpen(false)}>
+          <img src="/qrcode.jpg" alt="Support QR Code Full" className={styles.qrModalImg} />
+        </div>
+      )}
     </main>
   );
 }
