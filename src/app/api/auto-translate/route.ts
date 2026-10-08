@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
 // Ensure this route can run longer if needed
 export const maxDuration = 60;
@@ -38,17 +38,39 @@ export async function POST(request: Request) {
     const mimeType = imageResp.headers.get("content-type") || "image/jpeg";
 
     const genAI = new GoogleGenerativeAI(geminiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT,
+            properties: {
+              box: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.INTEGER },
+                description: "[ymin, xmin, ymax, xmax] scaled 0-1000 representing the bounding box of the text"
+              },
+              original_text: {
+                type: SchemaType.STRING,
+                description: "The extracted English/Korean text"
+              },
+              translated_text: {
+                type: SchemaType.STRING,
+                description: "The Khmer translation"
+              }
+            },
+            required: ["box", "original_text", "translated_text"]
+          }
+        }
+      }
+    });
 
     const prompt = `You are an expert comic/manhwa translator.
 Extract all the text/speech bubbles from this comic page.
 Translate all the text into natural-sounding Khmer.
-For EACH text bubble you find, you MUST provide its bounding box as an array of exactly 4 numbers [ymin, xmin, ymax, xmax] scaled to 0-1000.
-Return ONLY a valid JSON array of objects, where each object MUST exactly have:
-- "box": [ymin, xmin, ymax, xmax]
-- "original_text": "The extracted English/Korean text"
-- "translated_text": "The Khmer translation"
-Do NOT include any markdown formatting like \`\`\`json. Just return the raw JSON array.`;
+For EACH text bubble you find, you MUST provide its bounding box as an array of exactly 4 numbers [ymin, xmin, ymax, xmax] scaled to 0-1000.`;
 
     const result = await model.generateContent([
       prompt,

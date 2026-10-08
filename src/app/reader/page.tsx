@@ -638,15 +638,7 @@ function ReaderContent() {
                   )}
                 </div>
 
-                <div style={{ padding: '10px', textAlign: 'center' }}>
-                  <button 
-                    onClick={() => processFullImage(index, src)}
-                    className="btn-primary"
-                    style={{ fontSize: '0.9rem', padding: '8px 16px', background: 'var(--accent-color)' }}
-                  >
-                    ✨ Auto-Translate Image
-                  </button>
-                </div>
+
 
                 {translations[index] && !renderedBoxes[index] && !translations[index].some(t => t.box) && (
                   <div style={{ position: 'relative' }}>
