@@ -611,9 +611,9 @@ function ReaderContent() {
                           className={styles.translationCard}
                           style={{
                             position: 'absolute',
-                            top: `${top + height + 1}%`, // Position right below the original text
-                            left: `${Math.max(0, left - 15)}%`, // Center it slightly
-                            width: `${Math.min(100, width + 30)}%`, // Make it wider for Khmer text
+                            top: `${top}%`, // Position exactly on top of the original text
+                            left: `${Math.max(0, left - 5)}%`, // Center it slightly
+                            width: `${Math.min(100, width + 10)}%`, // Match width roughly
                             maxWidth: '300px',
                             padding: '12px 15px',
                             zIndex: 10,
