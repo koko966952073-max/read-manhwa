@@ -607,30 +607,37 @@ function ReaderContent() {
                       return (
                         <div 
                           key={i}
+                          className={styles.translationCard}
                           style={{
                             position: 'absolute',
-                            top: `${top + height}%`, // Position right below the original text
-                            left: `${Math.max(0, left - 10)}%`, // Center it slightly
-                            width: `${Math.min(100, width + 20)}%`, // Make it slightly wider for Khmer text
-                            background: 'rgba(0, 0, 0, 0.85)', // Dark background for better readability
-                            color: '#fff',
-                            border: '2px solid var(--accent-color)',
-                            borderRadius: '8px',
-                            padding: '6px 10px',
-                            fontSize: '0.9rem',
-                            lineHeight: '1.4',
+                            top: `${top + height + 1}%`, // Position right below the original text
+                            left: `${Math.max(0, left - 15)}%`, // Center it slightly
+                            width: `${Math.min(100, width + 30)}%`, // Make it wider for Khmer text
+                            maxWidth: '300px',
+                            padding: '12px 15px',
                             zIndex: 10,
-                            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            textAlign: 'center'
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
                           }}
                         >
-                          <span style={{ fontWeight: 'bold' }}>{t.translated_text}</span>
-                          <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
-                            <button onClick={(e) => handleReadAloud(e, t.translated_text, 'km')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>🔊</button>
+                          <div className={styles.translationItem} style={{ borderBottom: 'none', margin: 0, padding: 0 }}>
+                            <div className={styles.khmerText} style={{ fontSize: '1.1rem' }}>{t.translated_text}</div>
+                            <div className={styles.originalText} style={{ fontSize: '0.85rem', marginBottom: '10px' }}>{formatOriginalText(t.original_text)}</div>
+                            <div className={styles.actionRow}>
+                              <button 
+                                className={styles.iconBtn}
+                                onClick={(e) => handleReadAloud(e, formatOriginalText(t.original_text), 'en')}
+                                title="Read Original"
+                              >
+                                🔊
+                              </button>
+                              <button 
+                                className={styles.iconBtn}
+                                onClick={(e) => handleReadAloud(e, t.translated_text, 'km')}
+                                title="Read Translation"
+                              >
+                                🇰🇭🔊
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
