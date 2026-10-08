@@ -595,11 +595,18 @@ function ReaderContent() {
                   )}
 
                   {/* Render overlays for texts with bounding boxes */}
-                  {translations[index] && !renderedBoxes[index] && translations[index].some(t => t.box_2d || t.box) && (
+                  {translations[index] && !renderedBoxes[index] && translations[index].some(t => t.ymin !== undefined || t.box_2d || t.box) && (
                     translations[index].map((t, i) => {
-                      const box = t.box_2d || t.box;
-                      if (!box) return null;
-                      const [ymin, xmin, ymax, xmax] = box;
+                      let ymin, xmin, ymax, xmax;
+                      if (t.ymin !== undefined) {
+                        ymin = t.ymin; xmin = t.xmin; ymax = t.ymax; xmax = t.xmax;
+                      } else if (t.box_2d || t.box) {
+                        const box = t.box_2d || t.box;
+                        [ymin, xmin, ymax, xmax] = box;
+                      } else {
+                        return null;
+                      }
+                      
                       const top = (ymin / 1000) * 100;
                       const left = (xmin / 1000) * 100;
                       const width = ((xmax - xmin) / 1000) * 100;
@@ -648,7 +655,7 @@ function ReaderContent() {
 
 
 
-                {translations[index] && !renderedBoxes[index] && !translations[index].some(t => t.box_2d || t.box) && (
+                {translations[index] && !renderedBoxes[index] && !translations[index].some(t => t.ymin !== undefined || t.box_2d || t.box) && (
                   <div style={{ position: 'relative' }}>
                     <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', margin: '0 10px 20px 10px' }}>
                       <h3 style={{ color: 'var(--accent-color)', marginBottom: '15px', fontSize: '1rem' }}>Translated Text</h3>

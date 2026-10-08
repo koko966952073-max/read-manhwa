@@ -45,12 +45,20 @@ export async function POST(request: Request) {
     const prompt = `You are an expert comic/manhwa translator.
 Extract all the text/speech bubbles from this comic page in reading order.
 Translate all the text into natural-sounding Khmer.
-IMPORTANT: You MUST find the exact 2D bounding box for each text bubble you extract. The coordinates must be scaled from 0 to 1000.
+IMPORTANT: You MUST find the exact 2D bounding box for each text bubble you extract. The coordinates must be scaled from 0 to 1000. YOU MUST INCLUDE ymin, xmin, ymax, xmax FOR EVERY ITEM!
+
 Return ONLY a valid JSON array of objects. Do NOT include any markdown.
-Each object MUST exactly have:
-"box_2d": [ymin, xmin, ymax, xmax]
-"original_text": "The extracted English text"
-"translated_text": "The Khmer translation"`;
+Example format:
+[
+  {
+    "ymin": 120,
+    "xmin": 200,
+    "ymax": 150,
+    "xmax": 400,
+    "original_text": "Hello there!",
+    "translated_text": "សួស្តី!"
+  }
+]`;
 
     const result = await model.generateContent([
       prompt,
