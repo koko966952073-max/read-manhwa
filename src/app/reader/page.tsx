@@ -241,18 +241,36 @@ function ReaderContent() {
            return;
         }
 
-        // Send raw text to the lightweight translation endpoint
-        const response = await fetch("/api/translate-text", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, provider, deepseekKey }),
-        });
-
-        const data = await response.json();
-        if (response.ok && data.translations) {
-          setTranslations((prev) => ({ ...prev, [index]: data.translations }));
+        if (provider === "google_translate") {
+          // Client-side Google Translate fetch to bypass Vercel IP blocks
+          const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=km&dt=t&q=${encodeURIComponent(text)}`;
+          const translateResp = await fetch(translateUrl);
+          if (!translateResp.ok) throw new Error("Google Translate API blocked this IP. Try DeepSeek or Gemini.");
+          const translateData = await translateResp.json();
+          let translatedText = "";
+          if (translateData && translateData[0]) {
+            translateData[0].forEach((t: any) => {
+              if (t[0]) translatedText += t[0];
+            });
+          }
+          setTranslations((prev) => ({ 
+            ...prev, 
+            [index]: [{ original_text: text, translated_text: translatedText }] 
+          }));
         } else {
-          alert(data.error || "Failed to translate text");
+          // Send raw text to the lightweight translation endpoint for DeepSeek
+          const response = await fetch("/api/translate-text", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, provider, deepseekKey }),
+          });
+
+          const data = await response.json();
+          if (response.ok && data.translations) {
+            setTranslations((prev) => ({ ...prev, [index]: data.translations }));
+          } else {
+            alert(data.error || "Failed to translate text");
+          }
         }
 
       } else {
