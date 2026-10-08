@@ -9,6 +9,7 @@ import { createWorker } from "tesseract.js";
 interface Translation {
   original_text: string;
   translated_text: string;
+  box?: [number, number, number, number]; // [ymin, xmin, ymax, xmax]
 }
 
 interface CropBox {
@@ -56,11 +57,12 @@ const SocialPopup = ({ onClose }: { onClose: () => void }) => {
 
 function ReaderContent() {
   const searchParams = useSearchParams();
-  const url = searchParams.get("url");
+  const currentUrl = searchParams.get("url");
   const router = useRouter();
 
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isTranslatingAll, setIsTranslatingAll] = useState(false);
   const [error, setError] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSocial, setShowSocial] = useState(false);
@@ -78,7 +80,7 @@ function ReaderContent() {
   const imageRefs = useRef<(HTMLImageElement | null)[]>([]);
 
   useEffect(() => {
-    if (!url) {
+    if (!currentUrl) {
       setError("No URL provided");
       setLoading(false);
       return;
@@ -86,10 +88,14 @@ function ReaderContent() {
 
     const fetchImages = async () => {
       try {
+        setLoading(true);
+        setError("");
+        setImages([]);
+        setTranslations({});
         const response = await fetch("/api/scrape", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify({ url: currentUrl }),
         });
         const data = await response.json();
         if (response.ok) {
@@ -109,7 +115,23 @@ function ReaderContent() {
     };
 
     fetchImages();
-  }, [url]);
+  }, [currentUrl]);
+
+  const navigateChapter = (direction: 'next' | 'prev') => {
+    if (!currentUrl) return;
+    const regex = /(\d+)(?!.*\d)/;
+    const match = currentUrl.match(regex);
+    if (match) {
+      const currentNum = parseInt(match[0], 10);
+      const nextNum = direction === 'next' ? currentNum + 1 : Math.max(1, currentNum - 1);
+      // Replace the last number block with the new number
+      const lastIndex = currentUrl.lastIndexOf(match[0]);
+      const newUrl = currentUrl.substring(0, lastIndex) + nextNum.toString() + currentUrl.substring(lastIndex + match[0].length);
+      router.push(`/reader?url=${encodeURIComponent(newUrl)}`);
+    } else {
+      alert("Could not detect chapter number in URL.");
+    }
+  };
 
   useEffect(() => {
     const hasSubscribed = localStorage.getItem("hasSubscribed");
@@ -473,6 +495,17 @@ function ReaderContent() {
     setTranslations(newTranslations);
   };
 
+  const handleTranslateAll = async () => {
+    if (!window.confirm("This will translate the entire chapter. It might take a minute. Continue?")) return;
+    setIsTranslatingAll(true);
+    for (let i = 0; i < images.length; i++) {
+      if (!translations[i]) {
+        await processFullImage(i, images[i]);
+      }
+    }
+    setIsTranslatingAll(false);
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -492,8 +525,24 @@ function ReaderContent() {
 
       {!loading && !error && images.length > 0 && (
         <div className={styles.readerArea}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 20px', background: 'rgba(0,0,0,0.5)', marginBottom: '10px', borderRadius: '12px' }}>
+            <button onClick={() => navigateChapter('prev')} className="btn-secondary" style={{ padding: '8px 15px' }}>
+              ⬅️ Prev
+            </button>
+            <button 
+              onClick={handleTranslateAll} 
+              className="btn-primary" 
+              style={{ background: isTranslatingAll ? '#6b7280' : 'var(--accent-color)', padding: '8px 20px', fontWeight: 'bold' }}
+              disabled={isTranslatingAll}
+            >
+              {isTranslatingAll ? "⏳ Translating..." : "✨ Translate All"}
+            </button>
+            <button onClick={() => navigateChapter('next')} className="btn-secondary" style={{ padding: '8px 15px' }}>
+              Next ➡️
+            </button>
+          </div>
           <p style={{textAlign: "center", color: "var(--text-secondary)", marginBottom: "1rem"}}>
-            ✨ Tip: Switch to ✏️ Draw Mode using the bottom right button to select text!
+            ✨ Tip: You can also tap "Translate All" or use Draw Mode to select text manually!
           </p>
           {images.map((src, index) => {
             const isCurrentlyDrawing = isDrawing && drawingIndex === index;
@@ -544,6 +593,50 @@ function ReaderContent() {
                       </div>
                     </div>
                   )}
+
+                  {/* Render overlays for texts with bounding boxes */}
+                  {translations[index] && !renderedBoxes[index] && translations[index].some(t => t.box) && (
+                    translations[index].map((t, i) => {
+                      if (!t.box) return null;
+                      const [ymin, xmin, ymax, xmax] = t.box;
+                      const top = (ymin / 1000) * 100;
+                      const left = (xmin / 1000) * 100;
+                      const width = ((xmax - xmin) / 1000) * 100;
+                      const height = ((ymax - ymin) / 1000) * 100;
+                      
+                      return (
+                        <div 
+                          key={i}
+                          style={{
+                            position: 'absolute',
+                            top: `${top}%`,
+                            left: `${left}%`,
+                            width: `${width}%`,
+                            height: `${height}%`,
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            color: '#000',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            padding: '2px 4px',
+                            fontSize: '0.8rem',
+                            overflow: 'auto',
+                            zIndex: 10,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <span style={{ fontWeight: 'bold' }}>{t.translated_text}</span>
+                          <div style={{ display: 'flex', gap: '5px', marginTop: '2px' }}>
+                            <button onClick={(e) => handleReadAloud(e, t.translated_text, 'km')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>🔊</button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
 
                 <div style={{ padding: '10px', textAlign: 'center' }}>
@@ -556,19 +649,21 @@ function ReaderContent() {
                   </button>
                 </div>
 
-                {translations[index] && !renderedBoxes[index] && (
-                  <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', margin: '0 10px 20px 10px' }}>
-                    <h3 style={{ color: 'var(--accent-color)', marginBottom: '15px', fontSize: '1rem' }}>Translated Text</h3>
-                    {translations[index].map((t, i) => (
-                      <div key={i} className={styles.translationItem} style={{ marginBottom: '15px' }}>
-                        <div className={styles.khmerText} style={{ fontSize: '1.1rem' }}>{t.translated_text}</div>
-                        <div className={styles.originalText} style={{ fontSize: '0.9rem' }}>{formatOriginalText(t.original_text)}</div>
-                      </div>
-                    ))}
+                {translations[index] && !renderedBoxes[index] && !translations[index].some(t => t.box) && (
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ padding: '15px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', margin: '0 10px 20px 10px' }}>
+                      <h3 style={{ color: 'var(--accent-color)', marginBottom: '15px', fontSize: '1rem' }}>Translated Text</h3>
+                      {translations[index].map((t, i) => (
+                        <div key={i} className={styles.translationItem} style={{ marginBottom: '15px' }}>
+                          <div className={styles.khmerText} style={{ fontSize: '1.1rem' }}>{t.translated_text}</div>
+                          <div className={styles.originalText} style={{ fontSize: '0.9rem' }}>{formatOriginalText(t.original_text)}</div>
+                        </div>
+                      ))}
+                    </div>
                     <button 
                       className={`btn-primary ${styles.closeBtn}`}
                       onClick={() => handleCloseTranslation({ stopPropagation: () => {} } as any, index)}
-                      style={{ width: '100%', marginTop: '10px' }}
+                      style={{ width: 'calc(100% - 20px)', margin: '10px 10px 20px 10px' }}
                     >
                       Close Translation
                     </button>

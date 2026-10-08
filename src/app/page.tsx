@@ -12,8 +12,8 @@ export default function Home() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (url) {
-      // Redirect to the browser page with the URL as a query parameter
-      router.push(`/browser?url=${encodeURIComponent(url)}`);
+      // Redirect to the reader page with the URL as a query parameter
+      router.push(`/reader?url=${encodeURIComponent(url)}`);
     }
   };
 
