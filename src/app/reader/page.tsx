@@ -738,6 +738,18 @@ function ReaderContent() {
         </div>
       )}
 
+      {/* Bottom Navigation Buttons */}
+      {images.length > 0 && (
+        <div style={{ textAlign: 'center', margin: '40px 0', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+          <button className="btn-primary" onClick={() => handleNavigateChapter('prev')} disabled={!prevChapterUrl} style={{ padding: '12px 24px', fontSize: '1.1rem' }}>
+            ⬅️ Prev Chapter
+          </button>
+          <button className="btn-primary" onClick={() => handleNavigateChapter('next')} disabled={!nextChapterUrl} style={{ padding: '12px 24px', fontSize: '1.1rem', background: 'var(--accent-color)' }}>
+            Next Chapter ➡️
+          </button>
+        </div>
+      )}
+
       <button 
         onClick={() => setInteractionMode(prev => prev === 'scroll' ? 'draw' : 'scroll')}
         style={{
