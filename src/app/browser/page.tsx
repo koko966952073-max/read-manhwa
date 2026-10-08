@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
-export default function BrowserPage() {
+import { Suspense } from "react";
+
+function BrowserContent() {
   const searchParams = useSearchParams();
   const initialUrl = searchParams.get("url") || "";
   const router = useRouter();
@@ -99,5 +101,13 @@ export default function BrowserPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function BrowserPage() {
+  return (
+    <Suspense fallback={<div className={styles.container}><div className={styles.loadingOverlay}>Loading...</div></div>}>
+      <BrowserContent />
+    </Suspense>
   );
 }
