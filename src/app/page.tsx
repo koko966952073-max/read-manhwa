@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
@@ -9,9 +9,17 @@ export default function Home() {
   const [isQrOpen, setIsQrOpen] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    const savedUrl = localStorage.getItem("lastReadUrl");
+    if (savedUrl) {
+      setUrl(savedUrl);
+    }
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (url) {
+      localStorage.setItem("lastReadUrl", url);
       // Redirect to the reader page with the URL as a query parameter
       router.push(`/reader?url=${encodeURIComponent(url)}`);
     }

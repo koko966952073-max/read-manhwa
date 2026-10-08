@@ -127,6 +127,7 @@ function ReaderContent() {
       // Replace the last number block with the new number
       const lastIndex = currentUrl.lastIndexOf(match[0]);
       const newUrl = currentUrl.substring(0, lastIndex) + nextNum.toString() + currentUrl.substring(lastIndex + match[0].length);
+      localStorage.setItem("lastReadUrl", newUrl);
       router.push(`/reader?url=${encodeURIComponent(newUrl)}`);
     } else {
       alert("Could not detect chapter number in URL.");
@@ -558,7 +559,12 @@ function ReaderContent() {
                   onPointerDown={(e) => handlePointerDown(e, index)}
                   onPointerMove={handlePointerMove}
                   onPointerUp={(e) => handlePointerUp(e, index, src)}
-                  style={{ touchAction: interactionMode === 'draw' ? 'none' : 'auto' }} // Prevent scrolling only while in draw mode
+                  style={{ 
+                    touchAction: interactionMode === 'draw' ? 'none' : 'auto',
+                    WebkitTouchCallout: interactionMode === 'draw' ? 'none' : 'default',
+                    WebkitUserSelect: interactionMode === 'draw' ? 'none' : 'auto',
+                    userSelect: interactionMode === 'draw' ? 'none' : 'auto'
+                  }} 
                 >
                   <img
                     ref={(el) => { imageRefs.current[index] = el; }}
@@ -567,6 +573,7 @@ function ReaderContent() {
                     className={styles.comicImage}
                     loading={index < 3 ? "eager" : "lazy"}
                     draggable={false}
+                    style={{ pointerEvents: 'none' }}
                   />
 
                   {/* Draw Selection Box */}
@@ -741,10 +748,10 @@ function ReaderContent() {
       {/* Bottom Navigation Buttons */}
       {images.length > 0 && (
         <div style={{ textAlign: 'center', margin: '40px 0', display: 'flex', justifyContent: 'center', gap: '10px' }}>
-          <button className="btn-primary" onClick={() => handleNavigateChapter('prev')} disabled={!prevChapterUrl} style={{ padding: '12px 24px', fontSize: '1.1rem' }}>
+          <button className="btn-primary" onClick={() => navigateChapter('prev')} style={{ padding: '12px 24px', fontSize: '1.1rem' }}>
             ⬅️ Prev Chapter
           </button>
-          <button className="btn-primary" onClick={() => handleNavigateChapter('next')} disabled={!nextChapterUrl} style={{ padding: '12px 24px', fontSize: '1.1rem', background: 'var(--accent-color)' }}>
+          <button className="btn-primary" onClick={() => navigateChapter('next')} style={{ padding: '12px 24px', fontSize: '1.1rem', background: 'var(--accent-color)' }}>
             Next Chapter ➡️
           </button>
         </div>
