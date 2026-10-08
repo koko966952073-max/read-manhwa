@@ -545,70 +545,77 @@ function ReaderContent() {
   };
 
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        
-        // Convert to base64
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64data = reader.result as string;
-          const base64Audio = base64data.split(',')[1];
-          
-          setIsVoiceProcessing(true);
-          try {
-            const geminiKey = localStorage.getItem("geminiKey") || "";
-            const response = await fetch('/api/voice-translate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                audioBase64: base64Audio,
-                mimeType: 'audio/webm',
-                geminiKey: geminiKey
-              })
-            });
-            const data = await response.json();
-            if (response.ok) {
-              setVoiceResult(data);
-            } else {
-              alert(data.error || "Failed to process audio");
-            }
-          } catch (e) {
-            alert("Error connecting to server");
-          } finally {
-            setIsVoiceProcessing(false);
-          }
-        };
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setVoiceResult(null); // Clear previous result
-    } catch (err) {
-      alert("Microphone access denied or not available.");
-      console.error(err);
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support the free Speech Recognition API. Please use Chrome or Safari.");
+      return;
     }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US'; // Default to English for reading
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setVoiceResult(null);
+    };
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setIsVoiceProcessing(true);
+      
+      try {
+        // Use our free Google Translate API route
+        const response = await fetch('/api/translate-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: transcript,
+            provider: 'google_translate'
+          })
+        });
+        
+        const data = await response.json();
+        if (response.ok && data.translations && data.translations.length > 0) {
+          setVoiceResult({
+            transcript: transcript,
+            translation: data.translations[0].translated_text
+          });
+        } else {
+          alert("Failed to translate the text.");
+        }
+      } catch (e) {
+        alert("Error connecting to translation server");
+      } finally {
+        setIsVoiceProcessing(false);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsRecording(false);
+      if (event.error !== 'aborted') {
+        alert("Microphone error: " + event.error);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    // Store it in ref so we can stop it if needed
+    // @ts-ignore
+    mediaRecorderRef.current = recognition;
+    recognition.start();
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+    if (mediaRecorderRef.current) {
+      // @ts-ignore
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
-      // Stop all tracks to release microphone
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
 
