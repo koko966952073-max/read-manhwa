@@ -39,38 +39,18 @@ export async function POST(request: Request) {
 
     const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: SchemaType.ARRAY,
-          items: {
-            type: SchemaType.OBJECT,
-            properties: {
-              box: {
-                type: SchemaType.ARRAY,
-                items: { type: SchemaType.INTEGER },
-                description: "[ymin, xmin, ymax, xmax] scaled 0-1000 representing the bounding box of the text"
-              },
-              original_text: {
-                type: SchemaType.STRING,
-                description: "The extracted English/Korean text"
-              },
-              translated_text: {
-                type: SchemaType.STRING,
-                description: "The Khmer translation"
-              }
-            },
-            required: ["box", "original_text", "translated_text"]
-          }
-        }
-      }
+      model: "gemini-1.5-flash"
     });
 
     const prompt = `You are an expert comic/manhwa translator.
-Extract all the text/speech bubbles from this comic page.
+Extract all the text/speech bubbles from this comic page in reading order.
 Translate all the text into natural-sounding Khmer.
-For EACH text bubble you find, you MUST provide its bounding box as an array of exactly 4 numbers [ymin, xmin, ymax, xmax] scaled to 0-1000.`;
+IMPORTANT: You MUST find the exact 2D bounding box for each text bubble you extract. The coordinates must be scaled from 0 to 1000.
+Return ONLY a valid JSON array of objects. Do NOT include any markdown.
+Each object MUST exactly have:
+"box_2d": [ymin, xmin, ymax, xmax]
+"original_text": "The extracted English text"
+"translated_text": "The Khmer translation"`;
 
     const result = await model.generateContent([
       prompt,
