@@ -12,12 +12,14 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   const [geminiFreeKey, setGeminiFreeKey] = useState("");
   const [geminiPaidKey, setGeminiPaidKey] = useState("");
   const [deepseekKey, setDeepseekKey] = useState("");
+  const [geminiModel, setGeminiModel] = useState("gemini-3.5-flash-lite");
 
   useEffect(() => {
     setProvider(localStorage.getItem("ai_provider") || "gemini_free");
     setGeminiFreeKey(localStorage.getItem("gemini_free_key") || "");
     setGeminiPaidKey(localStorage.getItem("gemini_paid_key") || "");
     setDeepseekKey(localStorage.getItem("deepseek_api_key") || "");
+    setGeminiModel(localStorage.getItem("gemini_model") || "gemini-3.5-flash-lite");
   }, []);
 
   const handleSave = () => {
@@ -25,6 +27,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     localStorage.setItem("gemini_free_key", geminiFreeKey);
     localStorage.setItem("gemini_paid_key", geminiPaidKey);
     localStorage.setItem("deepseek_api_key", deepseekKey);
+    localStorage.setItem("gemini_model", geminiModel);
     onClose();
   };
 
@@ -46,6 +49,24 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             <option value="google_translate">Google Translate (Free + Tesseract OCR)</option>
           </select>
         </div>
+
+        {(provider === "gemini_free" || provider === "gemini_paid") && (
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Gemini Model</label>
+            <select 
+              className={styles.select} 
+              value={geminiModel} 
+              onChange={(e) => setGeminiModel(e.target.value)}
+            >
+              <option value="Gemini-3.5-flash">Gemini-3.5-flash</option>
+              <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+              <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+              <option value="gemini-3.7-flash">gemini-3.7-flash</option>
+              <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+            </select>
+          </div>
+        )}
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Gemini Free API Key</label>

@@ -6,7 +6,7 @@ import sharp from "sharp";
 
 export async function POST(request: Request) {
   try {
-    const { imageUrl, provider, geminiKey, deepseekKey, crop } = await request.json();
+    const { imageUrl, provider, geminiKey, deepseekKey, geminiModel, crop } = await request.json();
     console.log("=== Incoming Request ===");
     console.log("Provider:", provider);
     console.log("Crop:", crop);
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       // But standard Gemini uses GoogleGenerativeAI. We'll stick to GoogleGenerativeAI as planned.
       // And we use gemini-1.5-flash-latest to avoid the 404 error if they have standard key.
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+      const model = genAI.getGenerativeModel({ model: geminiModel || "gemini-3.5-flash-lite" });
 
       const prompt = `
         You are an expert translator. Read all the text in this image crop.

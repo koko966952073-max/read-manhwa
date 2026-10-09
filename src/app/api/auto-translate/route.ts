@@ -6,7 +6,7 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const { imageUrl, provider, geminiKey } = await request.json();
+    const { imageUrl, provider, geminiKey, geminiModel } = await request.json();
 
     if (!imageUrl) {
       return NextResponse.json({ error: "No image URL provided" }, { status: 400 });
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-pro"
+      model: geminiModel || "gemini-3.5-flash-lite"
     });
 
     const prompt = `You are an expert comic/manhwa translator.

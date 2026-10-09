@@ -271,6 +271,7 @@ function ReaderContent() {
     const geminiFreeKey = localStorage.getItem("gemini_free_key") || "";
     const geminiPaidKey = localStorage.getItem("gemini_paid_key") || "";
     const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
+    const geminiModel = localStorage.getItem("gemini_model") || "gemini-3.5-flash-lite";
     
     let geminiKey = provider === "gemini_paid" ? geminiPaidKey : geminiFreeKey;
 
@@ -344,7 +345,7 @@ function ReaderContent() {
         const response = await fetch("/api/auto-translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey }),
+          body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey, geminiModel }),
         });
 
         const data = await response.json();
@@ -367,6 +368,7 @@ function ReaderContent() {
     const geminiFreeKey = localStorage.getItem("gemini_free_key") || "";
     const geminiPaidKey = localStorage.getItem("gemini_paid_key") || "";
     const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
+    const geminiModel = localStorage.getItem("gemini_model") || "gemini-3.5-flash-lite";
     
     let geminiKey = provider === "gemini_paid" ? geminiPaidKey : geminiFreeKey;
 
@@ -445,7 +447,7 @@ function ReaderContent() {
         const response = await fetch("/api/process-image", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey, deepseekKey, crop }),
+          body: JSON.stringify({ imageUrl: src, provider: provider, geminiKey, deepseekKey, geminiModel, crop }),
         });
 
         const data = await response.json();
